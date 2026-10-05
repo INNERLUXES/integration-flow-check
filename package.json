@@ -1,0 +1,52 @@
+{
+  "name": "integration-flow-check",
+  "version": "1.0.0",
+  "description": "Cloud integration flow check: reads a CSV or JSON inventory of the integration flows between cloud, on-premise and SaaS systems (source and target with their locations, pattern, direction, data and its owner, trigger, authentication, encryption, retry policy, idempotency, error handling, monitoring and owner) and reports unknown systems, duplicate flows, systems that write the same data into each other with no single owner, hybrid flows with no encryption or weak authentication, retries with no idempotency, scheduled flows with no interval, flows with no error handling, monitoring or owner, and point-to-point sprawl, with a summary per system and per pattern. Text, JSON, CSV and GitHub annotation output, exit codes for a pipeline, no dependencies.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "integration-flow-check": "bin/integration-flow-check.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "examples",
+    "research",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-coverage \"test/*.test.js\"",
+    "check": "node tools/check.mjs",
+    "example": "node tools/example.mjs"
+  },
+  "keywords": [
+    "cloud-integration",
+    "hybrid-cloud",
+    "integration-patterns",
+    "ipaas",
+    "api-integration",
+    "data-integration",
+    "enterprise-integration",
+    "idempotency",
+    "dead-letter-queue",
+    "integration-inventory",
+    "csv",
+    "cli"
+  ],
+  "author": "INNERLUXES <info@innerluxes.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/INNERLUXES/integration-flow-check.git"
+  },
+  "homepage": "https://innerluxes.dev/application/integration/cloud"
+}
