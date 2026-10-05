@@ -1,0 +1,17 @@
+{
+  "company": "Brackenfold Freight",
+  "systems": [
+    { "name": "order-hub", "location": "cloud" },
+    { "name": "warehouse-wms", "location": "on-premise" },
+    { "name": "ledger-erp", "location": "head office" },
+    { "name": "crm-suite", "location": "saas" },
+    { "name": "billing", "location": "cloud" },
+    { "name": "carrier-portal", "location": "saas" },
+    { "name": "data-lake", "location": "cloud" },
+    { "name": "hr-suite", "location": "saas" },
+    { "name": "payroll", "location": "on-premise" },
+    { "name": "label-printer", "location": "on-premise" },
+    { "name": "customer-app", "location": "cloud" },
+    { "name": "fleet-tracker", "location": "private cloud" }
+  ]
+}

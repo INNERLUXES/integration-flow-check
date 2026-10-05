@@ -1,0 +1,139 @@
+integration-flow-check: flows examples/messy/flows.csv; systems examples/messy/systems.json
+input: flows examples/messy/flows.csv (1 file: 1 CSV file; 19 records); systems examples/messy/systems.json (1 file: 1 JSON file; 12 records)
+config: examples/config.json (Brackenfold integration review): max direct connections 4; 1 location alias, 1 pattern alias; minimum severity info; fail on error
+rules: unknown-system (error); unknown-location (error); location-conflict (error); unknown-pattern (error); unknown-value (error); duplicate-flow (error); duplicate-id (warning); conflicting-writers (error); no-encryption (error); weak-authentication (error); api-key-over-internet (warning); personal-data-unencrypted (error); retry-without-idempotency (error); missing-retry (warning); missing-interval (error); missing-error-handling (warning); missing-monitoring (warning); missing-owner (warning); point-to-point-sprawl (info); invalid-record (error); unreadable-file (error); unparsable-file (error)
+flows: 18 flows: 8 hybrid, 11 crossing a boundary, 1 two-way, 10 real-time, 7 scheduled, 4 with personal data; 13 systems
+findings: 24 (17 error, 6 warning, 1 info)
+
+Systems (13)
+
+  system          location    listed  out  in  hybrid  direct
+  order-hub       cloud       yes     7    2   3       5
+  warehouse-wms   on-premise  yes     2    3   3       2
+  ledger-erp      on-premise  yes     1    1   2       2
+  crm-suite       saas        yes     1    3   2       3
+  billing         cloud       yes     1    2   1       3
+  carrier-portal  saas        yes     0    1   0       1
+  data-lake       cloud       yes     1    1   1       2
+  hr-suite        saas        yes     1    1   2       1
+  payroll         on-premise  yes     1    1   2       1
+  label-printer   on-premise  yes     1    1   0       1
+  customer-app    cloud       yes     1    1   0       2
+  fleet-tracker   -           yes     1    0   0       0
+  order-hbu       -           no      0    1   0       1
+
+Patterns (7)
+
+  pattern   hub  flows  hybrid  two-way
+  api       no   8      4       1
+  event     yes  2      1       0
+  file      no   4      1       0
+  batch     no   3      2       0
+  database  no   0      0       0
+  ipaas     yes  0      0       0
+  unknown   no   1      0       0
+
+Findings (24)
+
+  ERROR    unknown-location           examples/messy/systems.json:15
+           the system "fleet-tracker" has the location "private cloud", which is not cloud, on-premise or saas
+           fix: write cloud, on-premise or saas, add the system to the systems file with its location, or add the name your team uses to locationAliases in the configuration
+
+  ERROR    conflicting-writers        examples/messy/flows.csv:4
+           the flow "F03" is two-way between ledger-erp and crm-suite and names no data owner, so both can write customers
+           fix: name the system of record of the data in the data owner column of every flow that carries it, and let only that system write the data
+
+  ERROR    weak-authentication        examples/messy/flows.csv:4
+           the flow "F03" crosses from on-premise to saas, a hybrid flow, and authenticates with basic, a user name and a password
+           fix: authenticate the flow with OAuth 2.0, mutual TLS or a managed identity, and write it in the authentication column
+
+  ERROR    retry-without-idempotency  examples/messy/flows.csv:4
+           the flow "F03" retries (3 tries) and names no idempotency key or method, so a repeated delivery can write a record twice
+           fix: name the idempotency key or method the target uses to drop a repeated record, such as a message id it stores or an upsert on a business key
+
+  ERROR    missing-interval           examples/messy/flows.csv:6
+           the flow "F05" is scheduled and names no interval
+           fix: write the interval, such as every 15 min, hourly or a cron expression
+
+  ERROR    no-encryption              examples/messy/flows.csv:6
+           the flow "F05" crosses from cloud to on-premise, a hybrid flow, and is not encrypted
+           fix: encrypt the transport (TLS, HTTPS, SFTP, a VPN) and write it in the encryption column
+
+  ERROR    no-encryption              examples/messy/flows.csv:8
+           the flow "F07" crosses from saas to on-premise, a hybrid flow, and states no transport encryption
+           fix: encrypt the transport (TLS, HTTPS, SFTP, a VPN) and write it in the encryption column
+
+  ERROR    personal-data-unencrypted  examples/messy/flows.csv:8
+           the flow "F07" carries personal data (employees) and states no transport encryption
+           fix: encrypt the transport of the flow, or take the personal data out of it
+
+  ERROR    conflicting-writers        examples/messy/flows.csv:9
+           the flow "F08" writes employees from payroll into hr-suite, the flow at examples/messy/flows.csv:8 writes it from hr-suite into payroll, and the two do not name one data owner
+           fix: name the system of record of the data in the data owner column of every flow that carries it, and let only that system write the data
+
+  ERROR    duplicate-flow             examples/messy/flows.csv:11
+           the flow "F01" moves orders from order-hub to warehouse-wms, as the flow at examples/messy/flows.csv:2 does
+           fix: keep one flow for the data between the two systems, or name the data of each flow apart
+
+  ERROR    unknown-pattern            examples/messy/flows.csv:15
+           the flow "F14" has the pattern "rest-ish", which is not one of api, event, file, batch, database or ipaas
+           fix: write api, event, file, batch, database or ipaas, or add the name your team uses to patternAliases in the configuration
+
+  ERROR    unknown-system             examples/messy/flows.csv:17
+           the flow "F16" names the target "order-hbu", which the systems file does not list, did you mean "order-hub"?
+           fix: write the system as the systems file names it, or add the system to the systems file with its location
+
+  ERROR    unknown-location           examples/messy/flows.csv:17
+           the flow "F16" names no location for its target "order-hbu", and the systems file does not list it
+           fix: write cloud, on-premise or saas, add the system to the systems file with its location, or add the name your team uses to locationAliases in the configuration
+
+  ERROR    location-conflict          examples/messy/flows.csv:18
+           the flow "F17" puts its source "data-lake" on-premise, and the systems file at examples/messy/systems.json:10 puts it in the cloud
+           fix: correct the location in the flow or in the systems file; a system that runs in two places is two systems, named apart
+
+  ERROR    unknown-value              examples/messy/flows.csv:18
+           the flow "F17" has the authentication "magic link", which the tool does not know
+           fix: write one of the values docs/inputs.md lists for the field
+
+  ERROR    unknown-value              examples/messy/flows.csv:19
+           the flow "F18" has the trigger "whenever", which is not real-time or scheduled
+           fix: write one of the values docs/inputs.md lists for the field
+
+  ERROR    invalid-record             examples/messy/flows.csv:20
+           this row names no target system; the flow is not checked
+           fix: correct the record at the line named
+
+  WARNING  api-key-over-internet      examples/messy/flows.csv:5
+           the flow "F04" runs from saas to cloud, over the internet, and authenticates with a static key (api-key)
+           fix: use OAuth 2.0 or mutual TLS where the other system offers it, or keep the key in a vault, scope it to the flow and rotate it
+
+  WARNING  missing-monitoring         examples/messy/flows.csv:6
+           the flow "F05" is not monitored
+           fix: monitor the flow (runs, failures, lag) and write yes in the monitoring column
+
+  WARNING  missing-error-handling     examples/messy/flows.csv:7
+           the flow "F06" has no error handling
+           fix: name what happens to a record that cannot be delivered: a dead letter queue someone reads, an alert, or both
+
+  WARNING  missing-owner              examples/messy/flows.csv:7
+           the flow "F06" has no owner
+           fix: name the team that answers for the flow and acts when it fails
+
+  WARNING  missing-retry              examples/messy/flows.csv:10
+           the flow "F09" is real-time and names no retry policy
+           fix: write the retry policy of the flow, such as three tries with exponential backoff, and make the target idempotent
+
+  WARNING  duplicate-id               examples/messy/flows.csv:11
+           the flow "F01" has the id of the flow at examples/messy/flows.csv:2
+           fix: give every flow its own id
+
+  INFO     point-to-point-sprawl      examples/messy/flows.csv:2
+           the system "order-hub" is connected directly to 5 other systems (warehouse-wms, carrier-portal, data-lake, customer-app and 1 more), more than 4; a hub such as an iPaaS or an event bus would connect it once
+           fix: route the flows of the system through a hub, such as an iPaaS or an event bus, so each system connects once
+
+note: examples/messy/systems.json: 1 key the tool does not read was left out: "company"
+note: examples/messy/flows.csv: 1 column the tool does not read was left out: "notes"
+
+This check reads the flow inventory as it is written. It connects to no system, tests no connection or credential, and does not certify that an integration is secure, correct or compliant (docs/limits.md).
+
+RESULT: FAIL - 17 findings at or above error (17 error, 6 warning, 1 info)

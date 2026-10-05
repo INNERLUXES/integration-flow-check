@@ -1,0 +1,229 @@
+integration-flow-check: flows examples/messy/flows.csv; systems examples/messy/systems.json
+input: flows examples/messy/flows.csv (1 file: 1 CSV file; 19 records); systems examples/messy/systems.json (1 file: 1 JSON file; 12 records)
+config: examples/config.json (Brackenfold integration review): max direct connections 4; 1 location alias, 1 pattern alias; minimum severity info; fail on error
+rules: unknown-system (error); unknown-location (error); location-conflict (error); unknown-pattern (error); unknown-value (error); duplicate-flow (error); duplicate-id (warning); conflicting-writers (error); no-encryption (error); weak-authentication (error); api-key-over-internet (warning); personal-data-unencrypted (error); retry-without-idempotency (error); missing-retry (warning); missing-interval (error); missing-error-handling (warning); missing-monitoring (warning); missing-owner (warning); point-to-point-sprawl (info); invalid-record (error); unreadable-file (error); unparsable-file (error)
+flows: 18 flows: 8 hybrid, 11 crossing a boundary, 1 two-way, 10 real-time, 7 scheduled, 4 with personal data; 13 systems
+findings: 24 (17 error, 6 warning, 1 info)
+
+Systems (13)
+
+  system          location    listed  out  in  hybrid  direct
+  order-hub       cloud       yes     7    2   3       5
+  warehouse-wms   on-premise  yes     2    3   3       2
+  ledger-erp      on-premise  yes     1    1   2       2
+  crm-suite       saas        yes     1    3   2       3
+  billing         cloud       yes     1    2   1       3
+  carrier-portal  saas        yes     0    1   0       1
+  data-lake       cloud       yes     1    1   1       2
+  hr-suite        saas        yes     1    1   2       1
+  payroll         on-premise  yes     1    1   2       1
+  label-printer   on-premise  yes     1    1   0       1
+  customer-app    cloud       yes     1    1   0       2
+  fleet-tracker   -           yes     1    0   0       0
+  order-hbu       -           no      0    1   0       1
+
+Patterns (7)
+
+  pattern   hub  flows  hybrid  two-way
+  api       no   8      4       1
+  event     yes  2      1       0
+  file      no   4      1       0
+  batch     no   3      2       0
+  database  no   0      0       0
+  ipaas     yes  0      0       0
+  unknown   no   1      0       0
+
+Findings (24)
+
+  ERROR    unknown-location           examples/messy/systems.json:15
+           the system "fleet-tracker" has the location "private cloud", which is not cloud, on-premise or saas
+           fix: write cloud, on-premise or saas, add the system to the systems file with its location, or add the name your team uses to locationAliases in the configuration
+           rule: a flow end or a system whose location is empty or none of cloud, on-premise and saas and their names and the 1 alias of the configuration
+           basis: cloud computing gives network access on demand to a shared pool of configurable resources, and the definition sets it out in essential characteristics, three service models and four deployment models (NIST SP 800-145, The NIST Definition of Cloud Computing (NIST CSRC), https://csrc.nist.gov/pubs/sp/800/145/final)
+           basis: the four deployment models are private, community, public and hybrid (NIST SP 800-145, The NIST Definition of Cloud Computing (NIST CSRC), https://csrc.nist.gov/pubs/sp/800/145/final)
+           basis: a private cloud serves one organization and may sit on or off its premises, while a public cloud sits on the premises of the provider (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           basis: in software as a service the consumer uses applications the provider runs on its own infrastructure, and controls neither the infrastructure nor, beyond some settings, the application (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a location is cloud, on-premise or saas, by one of the names of src/vocabulary.js or locationAliases; private cloud is not read as either, because a private cloud may be on or off the premises; an empty location is taken from the systems file when it lists the system, and otherwise reported
+
+  ERROR    conflicting-writers        examples/messy/flows.csv:4
+           the flow "F03" is two-way between ledger-erp and crm-suite and names no data owner, so both can write customers
+           fix: name the system of record of the data in the data owner column of every flow that carries it, and let only that system write the data
+           rule: a two-way flow with no data owner, or two flows that carry the same data in opposite directions without one data owner named by both
+           basis: a point-to-point channel makes sure that only one receiver consumes a given message, even when several receivers listen (Point-to-Point Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/PointToPointChannel.html)
+           basis: a receiver can get the same message more than once even when it was sent once, so it either removes duplicates or is built so a repeated message does no harm (Idempotent Receiver (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html)
+           the tool's own choice: a two-way flow with no data owner, and a flow from A to B with the same data as an earlier flow from B to A when the two do not name the same data owner, are reported: each side can overwrite the other and an update can go round in a loop
+
+  ERROR    weak-authentication        examples/messy/flows.csv:4
+           the flow "F03" crosses from on-premise to saas, a hybrid flow, and authenticates with basic, a user name and a password
+           fix: authenticate the flow with OAuth 2.0, mutual TLS or a managed identity, and write it in the authentication column
+           rule: a hybrid flow, or a flow with a SaaS end, whose authentication is none, basic or not stated
+           basis: a hybrid cloud is two or more distinct cloud infrastructures that stay separate entities but are bound together by technology that lets data and applications move between them (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           basis: cloud capabilities are reached over the network through standard mechanisms, from many kinds of client (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a flow crosses a boundary when one end is on-premise and the other in the cloud or a SaaS application (a hybrid flow), when one end is in the cloud and the other a SaaS application, or when both ends are SaaS applications; a flow between two on-premise systems or two cloud systems does not; such a flow with authentication none, basic (a user name and a password) or no authentication stated is reported
+
+  ERROR    retry-without-idempotency  examples/messy/flows.csv:4
+           the flow "F03" retries (3 tries) and names no idempotency key or method, so a repeated delivery can write a record twice
+           fix: name the idempotency key or method the target uses to drop a repeated record, such as a message id it stores or an upsert on a business key
+           rule: a flow that names a retry policy and no idempotency key or method
+           basis: a receiver can get the same message more than once even when it was sent once, so it either removes duplicates or is built so a repeated message does no harm (Idempotent Receiver (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html)
+           basis: a message is kept in a store at each step and not removed until the next store holds it, so a failure on the way does not lose it (Guaranteed Delivery (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html)
+           the tool's own choice: a flow with a retry policy (any text but none or no) and no idempotency key or method; a retry after a lost reply sends the same record again, and without idempotency the target can write it twice
+
+  ERROR    missing-interval           examples/messy/flows.csv:6
+           the flow "F05" is scheduled and names no interval
+           fix: write the interval, such as every 15 min, hourly or a cron expression
+           rule: a scheduled flow with no interval, or with an interval the tool does not read
+           basis: a message is kept in a store at each step and not removed until the next store holds it, so a failure on the way does not lose it (Guaranteed Delivery (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html)
+           the tool's own choice: a scheduled flow needs an interval in the interval column or with its trigger: a number with a unit of time, a word such as hourly or nightly, or a cron expression; without one nobody can tell how stale the data of the target may be
+
+  ERROR    no-encryption              examples/messy/flows.csv:6
+           the flow "F05" crosses from cloud to on-premise, a hybrid flow, and is not encrypted
+           fix: encrypt the transport (TLS, HTTPS, SFTP, a VPN) and write it in the encryption column
+           rule: a hybrid flow, or a flow with a SaaS end, whose transport encryption is no or not stated
+           basis: a hybrid cloud is two or more distinct cloud infrastructures that stay separate entities but are bound together by technology that lets data and applications move between them (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           basis: cloud capabilities are reached over the network through standard mechanisms, from many kinds of client (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a flow crosses a boundary when one end is on-premise and the other in the cloud or a SaaS application (a hybrid flow), when one end is in the cloud and the other a SaaS application, or when both ends are SaaS applications; a flow between two on-premise systems or two cloud systems does not; a flow that crosses a boundary needs transport encryption written as yes or as an encrypting transport such as tls, https or sftp; an empty value is reported too
+
+  ERROR    no-encryption              examples/messy/flows.csv:8
+           the flow "F07" crosses from saas to on-premise, a hybrid flow, and states no transport encryption
+           fix: encrypt the transport (TLS, HTTPS, SFTP, a VPN) and write it in the encryption column
+           rule: a hybrid flow, or a flow with a SaaS end, whose transport encryption is no or not stated
+           basis: a hybrid cloud is two or more distinct cloud infrastructures that stay separate entities but are bound together by technology that lets data and applications move between them (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           basis: cloud capabilities are reached over the network through standard mechanisms, from many kinds of client (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a flow crosses a boundary when one end is on-premise and the other in the cloud or a SaaS application (a hybrid flow), when one end is in the cloud and the other a SaaS application, or when both ends are SaaS applications; a flow between two on-premise systems or two cloud systems does not; a flow that crosses a boundary needs transport encryption written as yes or as an encrypting transport such as tls, https or sftp; an empty value is reported too
+
+  ERROR    personal-data-unencrypted  examples/messy/flows.csv:8
+           the flow "F07" carries personal data (employees) and states no transport encryption
+           fix: encrypt the transport of the flow, or take the personal data out of it
+           rule: a flow with the personal data flag set and no transport encryption
+           basis: cloud capabilities are reached over the network through standard mechanisms, from many kinds of client (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a flow whose personal data flag is yes and whose transport encryption is no or not stated, wherever its ends are; an empty flag is read as no
+
+  ERROR    conflicting-writers        examples/messy/flows.csv:9
+           the flow "F08" writes employees from payroll into hr-suite, the flow at examples/messy/flows.csv:8 writes it from hr-suite into payroll, and the two do not name one data owner
+           fix: name the system of record of the data in the data owner column of every flow that carries it, and let only that system write the data
+           rule: a two-way flow with no data owner, or two flows that carry the same data in opposite directions without one data owner named by both
+           basis: a point-to-point channel makes sure that only one receiver consumes a given message, even when several receivers listen (Point-to-Point Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/PointToPointChannel.html)
+           basis: a receiver can get the same message more than once even when it was sent once, so it either removes duplicates or is built so a repeated message does no harm (Idempotent Receiver (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html)
+           the tool's own choice: a two-way flow with no data owner, and a flow from A to B with the same data as an earlier flow from B to A when the two do not name the same data owner, are reported: each side can overwrite the other and an update can go round in a loop
+
+  ERROR    duplicate-flow             examples/messy/flows.csv:11
+           the flow "F01" moves orders from order-hub to warehouse-wms, as the flow at examples/messy/flows.csv:2 does
+           fix: keep one flow for the data between the two systems, or name the data of each flow apart
+           rule: a flow whose source, target and data an earlier flow already has
+           basis: a receiver can get the same message more than once even when it was sent once, so it either removes duplicates or is built so a repeated message does no harm (Idempotent Receiver (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html)
+           basis: a point-to-point channel makes sure that only one receiver consumes a given message, even when several receivers listen (Point-to-Point Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/PointToPointChannel.html)
+           the tool's own choice: two flows are the same when their source, target and data are the same in their term form; a two-way flow is the same as another two-way flow between the same two systems in either order; a flow with no data named is not compared
+
+  ERROR    unknown-pattern            examples/messy/flows.csv:15
+           the flow "F14" has the pattern "rest-ish", which is not one of api, event, file, batch, database or ipaas
+           fix: write api, event, file, batch, database or ipaas, or add the name your team uses to patternAliases in the configuration
+           rule: a flow whose pattern is empty or none of api, event, file, batch, database and ipaas and their names and the 1 alias of the configuration
+           basis: applications are connected through a channel: one writes to it and another reads from it, and the sender need not know which application receives (Message Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageChannel.html)
+           basis: a point-to-point channel makes sure that only one receiver consumes a given message, even when several receivers listen (Point-to-Point Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/PointToPointChannel.html)
+           the tool's own choice: a pattern is api, event, file, batch, database or ipaas, by one of the names of src/vocabulary.js or patternAliases; a flow with no pattern the tool knows is left out of the count of direct connections
+
+  ERROR    unknown-system             examples/messy/flows.csv:17
+           the flow "F16" names the target "order-hbu", which the systems file does not list, did you mean "order-hub"?
+           fix: write the system as the systems file names it, or add the system to the systems file with its location
+           rule: a flow whose source, target or data owner is not a system of the systems file, when one is given
+           basis: applications are connected through a channel: one writes to it and another reads from it, and the sender need not know which application receives (Message Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageChannel.html)
+           the tool's own choice: only with a systems file: the source, the target and the data owner of a flow are compared in their term form with the names of the systems file; a near name is suggested, never used; the flow is still checked
+
+  ERROR    unknown-location           examples/messy/flows.csv:17
+           the flow "F16" names no location for its target "order-hbu", and the systems file does not list it
+           fix: write cloud, on-premise or saas, add the system to the systems file with its location, or add the name your team uses to locationAliases in the configuration
+           rule: a flow end or a system whose location is empty or none of cloud, on-premise and saas and their names and the 1 alias of the configuration
+           basis: cloud computing gives network access on demand to a shared pool of configurable resources, and the definition sets it out in essential characteristics, three service models and four deployment models (NIST SP 800-145, The NIST Definition of Cloud Computing (NIST CSRC), https://csrc.nist.gov/pubs/sp/800/145/final)
+           basis: the four deployment models are private, community, public and hybrid (NIST SP 800-145, The NIST Definition of Cloud Computing (NIST CSRC), https://csrc.nist.gov/pubs/sp/800/145/final)
+           basis: a private cloud serves one organization and may sit on or off its premises, while a public cloud sits on the premises of the provider (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           basis: in software as a service the consumer uses applications the provider runs on its own infrastructure, and controls neither the infrastructure nor, beyond some settings, the application (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a location is cloud, on-premise or saas, by one of the names of src/vocabulary.js or locationAliases; private cloud is not read as either, because a private cloud may be on or off the premises; an empty location is taken from the systems file when it lists the system, and otherwise reported
+
+  ERROR    location-conflict          examples/messy/flows.csv:18
+           the flow "F17" puts its source "data-lake" on-premise, and the systems file at examples/messy/systems.json:10 puts it in the cloud
+           fix: correct the location in the flow or in the systems file; a system that runs in two places is two systems, named apart
+           rule: a flow end whose location differs from the location of the same system in the systems file or in an earlier flow
+           basis: the four deployment models are private, community, public and hybrid (NIST SP 800-145, The NIST Definition of Cloud Computing (NIST CSRC), https://csrc.nist.gov/pubs/sp/800/145/final)
+           basis: a private cloud serves one organization and may sit on or off its premises, while a public cloud sits on the premises of the provider (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a system has one location: a flow that gives a system another location than the systems file, or than an earlier flow when there is no systems file entry, is reported; the location the flow gives is used for that flow
+
+  ERROR    unknown-value              examples/messy/flows.csv:18
+           the flow "F17" has the authentication "magic link", which the tool does not know
+           fix: write one of the values docs/inputs.md lists for the field
+           rule: a flow whose direction, trigger, authentication, encryption, error handling, monitoring or personal data flag holds a value that is none of the names of src/vocabulary.js
+           basis: applications are connected through a channel: one writes to it and another reads from it, and the sender need not know which application receives (Message Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageChannel.html)
+           the tool's own choice: the direction, the trigger, the authentication, the encryption, the error handling, the monitoring and the personal data flag are read by the names of src/vocabulary.js; a value that is none of them is reported, never guessed, and the checks that need it are not run on it
+
+  ERROR    unknown-value              examples/messy/flows.csv:19
+           the flow "F18" has the trigger "whenever", which is not real-time or scheduled
+           fix: write one of the values docs/inputs.md lists for the field
+           rule: a flow whose direction, trigger, authentication, encryption, error handling, monitoring or personal data flag holds a value that is none of the names of src/vocabulary.js
+           basis: applications are connected through a channel: one writes to it and another reads from it, and the sender need not know which application receives (Message Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageChannel.html)
+           the tool's own choice: the direction, the trigger, the authentication, the encryption, the error handling, the monitoring and the personal data flag are read by the names of src/vocabulary.js; a value that is none of them is reported, never guessed, and the checks that need it are not run on it
+
+  ERROR    invalid-record             examples/messy/flows.csv:20
+           this row names no target system; the flow is not checked
+           fix: correct the record at the line named
+           rule: a flow or system with the wrong number of fields, no source, target or name, a system named twice, or a value of the wrong kind
+           basis: every line of a CSV file should hold the same number of fields (RFC 4180, Common Format and MIME Type for Comma-Separated Values (CSV) Files, https://www.rfc-editor.org/rfc/rfc4180)
+           the tool's own choice: a CSV row with a different number of fields than the header, a JSON record that is not an object or names a field twice, a flow with no source or target, and a system with no name or named twice are not checked; a value of the wrong kind is taken as empty; this rule cannot be set lower or off
+
+  WARNING  api-key-over-internet      examples/messy/flows.csv:5
+           the flow "F04" runs from saas to cloud, over the internet, and authenticates with a static key (api-key)
+           fix: use OAuth 2.0 or mutual TLS where the other system offers it, or keep the key in a vault, scope it to the flow and rotate it
+           rule: a hybrid flow, or a flow with a SaaS end, whose authentication is an API key or a shared access signature
+           basis: cloud capabilities are reached over the network through standard mechanisms, from many kinds of client (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           basis: in software as a service the consumer uses applications the provider runs on its own infrastructure, and controls neither the infrastructure nor, beyond some settings, the application (NIST SP 800-145, The NIST Definition of Cloud Computing, full text (NIST), https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-145.pdf)
+           the tool's own choice: a flow crosses a boundary when one end is on-premise and the other in the cloud or a SaaS application (a hybrid flow), when one end is in the cloud and the other a SaaS application, or when both ends are SaaS applications; a flow between two on-premise systems or two cloud systems does not; an API key or a shared access signature is a secret that travels with every call and is often long-lived, so a warning and not an error
+
+  WARNING  missing-monitoring         examples/messy/flows.csv:6
+           the flow "F05" is not monitored
+           fix: monitor the flow (runs, failures, lag) and write yes in the monitoring column
+           rule: a flow whose monitoring is no or empty
+           basis: a message that the messaging system cannot or should not deliver may be moved to a dead letter channel instead of being lost (Dead Letter Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/DeadLetterChannel.html)
+           basis: a message is kept in a store at each step and not removed until the next store holds it, so a failure on the way does not lose it (Guaranteed Delivery (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html)
+           the tool's own choice: a flow whose monitoring is no or not stated; any form of yes counts, the tool cannot tell what is watched
+
+  WARNING  missing-error-handling     examples/messy/flows.csv:7
+           the flow "F06" has no error handling
+           fix: name what happens to a record that cannot be delivered: a dead letter queue someone reads, an alert, or both
+           rule: a flow with an empty error handling or none
+           basis: a message that the messaging system cannot or should not deliver may be moved to a dead letter channel instead of being lost (Dead Letter Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/DeadLetterChannel.html)
+           the tool's own choice: a flow whose error handling is empty or none; dead-letter and alert both count
+
+  WARNING  missing-owner              examples/messy/flows.csv:7
+           the flow "F06" has no owner
+           fix: name the team that answers for the flow and acts when it fails
+           rule: a flow with an empty owner, or a flows file with no owner column
+           basis: a message that the messaging system cannot or should not deliver may be moved to a dead letter channel instead of being lost (Dead Letter Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/DeadLetterChannel.html)
+           the tool's own choice: an owner per flow is the tool's own choice: a dead letter or an alert that nobody answers for is not acted on; any text counts as an owner
+
+  WARNING  missing-retry              examples/messy/flows.csv:10
+           the flow "F09" is real-time and names no retry policy
+           fix: write the retry policy of the flow, such as three tries with exponential backoff, and make the target idempotent
+           rule: a real-time flow with an empty retry policy or none
+           basis: a message is kept in a store at each step and not removed until the next store holds it, so a failure on the way does not lose it (Guaranteed Delivery (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html)
+           the tool's own choice: a real-time flow with no retry policy, or with none; a scheduled flow is not reported, because its next run picks up what failed when it reads from a watermark
+
+  WARNING  duplicate-id               examples/messy/flows.csv:11
+           the flow "F01" has the id of the flow at examples/messy/flows.csv:2
+           fix: give every flow its own id
+           rule: a flow whose id an earlier flow already has
+           basis: applications are connected through a channel: one writes to it and another reads from it, and the sender need not know which application receives (Message Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageChannel.html)
+           the tool's own choice: ids are compared in their term form; an id is optional, and a flow with no id is named by its source and target
+
+  INFO     point-to-point-sprawl      examples/messy/flows.csv:2
+           the system "order-hub" is connected directly to 5 other systems (warehouse-wms, carrier-portal, data-lake, customer-app and 1 more), more than 4; a hub such as an iPaaS or an event bus would connect it once
+           fix: route the flows of the system through a hub, such as an iPaaS or an event bus, so each system connects once
+           rule: a system connected directly to more than 4 other systems
+           basis: applications are connected through a channel: one writes to it and another reads from it, and the sender need not know which application receives (Message Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageChannel.html)
+           basis: a point-to-point channel makes sure that only one receiver consumes a given message, even when several receivers listen (Point-to-Point Channel (Enterprise Integration Patterns), https://www.enterpriseintegrationpatterns.com/patterns/messaging/PointToPointChannel.html)
+           the tool's own choice: a direct connection is a flow of the api, file, batch or database pattern; event and ipaas flows go through a hub and are not counted; the other systems are counted once each, in either direction; info by default, because a hub is a design choice
+
+note: examples/messy/systems.json: 1 key the tool does not read was left out: "company"
+note: examples/messy/flows.csv: 1 column the tool does not read was left out: "notes"
+
+This check reads the flow inventory as it is written. It connects to no system, tests no connection or credential, and does not certify that an integration is secure, correct or compliant (docs/limits.md).
+
+RESULT: FAIL - 17 findings at or above error (17 error, 6 warning, 1 info)

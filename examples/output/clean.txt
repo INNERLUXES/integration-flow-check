@@ -1,0 +1,36 @@
+integration-flow-check: flows examples/clean/flows.json; systems examples/clean/systems.csv
+input: flows examples/clean/flows.json (1 file: 1 JSON file; 7 records); systems examples/clean/systems.csv (1 file: 1 CSV file; 6 records)
+config: built-in defaults: max direct connections 5; 0 location aliases, 0 pattern aliases; minimum severity info; fail on error
+rules: unknown-system (error); unknown-location (error); location-conflict (error); unknown-pattern (error); unknown-value (error); duplicate-flow (error); duplicate-id (warning); conflicting-writers (error); no-encryption (error); weak-authentication (error); api-key-over-internet (warning); personal-data-unencrypted (error); retry-without-idempotency (error); missing-retry (warning); missing-interval (error); missing-error-handling (warning); missing-monitoring (warning); missing-owner (warning); point-to-point-sprawl (info); invalid-record (error); unreadable-file (error); unparsable-file (error)
+flows: 7 flows: 2 hybrid, 4 crossing a boundary, 0 two-way, 5 real-time, 2 scheduled, 6 with personal data; 6 systems
+findings: 0
+
+Systems (6)
+
+  system           location    listed  out  in  hybrid  direct
+  integration-hub  cloud       yes     3    3   2       0
+  patient-portal   saas        yes     1    1   0       0
+  scheduling       cloud       yes     2    1   0       1
+  lab-system       on-premise  yes     1    0   1       0
+  records-db       on-premise  yes     0    1   1       0
+  billing          cloud       yes     0    1   0       1
+
+Patterns (6)
+
+  pattern   hub  flows  hybrid  two-way
+  api       no   1      0       0
+  event     yes  1      0       0
+  file      no   0      0       0
+  batch     no   0      0       0
+  database  no   0      0       0
+  ipaas     yes  5      2       0
+
+Findings (0)
+
+  none
+
+note: examples/clean/systems.csv: 1 column the tool does not read was left out: "notes"
+
+This check reads the flow inventory as it is written. It connects to no system, tests no connection or credential, and does not certify that an integration is secure, correct or compliant (docs/limits.md).
+
+RESULT: PASS - no finding at or above error

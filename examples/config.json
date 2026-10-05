@@ -1,0 +1,6 @@
+{
+  "name": "Brackenfold integration review",
+  "maxDirectConnections": 4,
+  "locationAliases": { "head office": "on-premise" },
+  "patternAliases": { "edi": "file" }
+}

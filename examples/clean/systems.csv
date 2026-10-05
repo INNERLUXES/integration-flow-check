@@ -1,0 +1,7 @@
+system,location,notes
+integration-hub,cloud,the one hub every flow passes
+patient-portal,saas,
+scheduling,cloud,
+lab-system,on-premise,
+records-db,on-premise,
+billing,cloud,

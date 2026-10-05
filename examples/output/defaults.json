@@ -1,0 +1,29 @@
+{
+  "name": "built-in defaults",
+  "rules": {
+    "unknownSystem": "error",
+    "unknownLocation": "error",
+    "locationConflict": "error",
+    "unknownPattern": "error",
+    "unknownValue": "error",
+    "duplicateFlow": "error",
+    "duplicateId": "warning",
+    "conflictingWriters": "error",
+    "noEncryption": "error",
+    "weakAuthentication": "error",
+    "apiKeyOverInternet": "warning",
+    "personalDataUnencrypted": "error",
+    "retryWithoutIdempotency": "error",
+    "missingRetry": "warning",
+    "missingInterval": "error",
+    "missingErrorHandling": "warning",
+    "missingMonitoring": "warning",
+    "missingOwner": "warning",
+    "pointToPointSprawl": "info"
+  },
+  "maxDirectConnections": 5,
+  "locationAliases": {},
+  "patternAliases": {},
+  "minSeverity": "info",
+  "failOn": "error"
+}

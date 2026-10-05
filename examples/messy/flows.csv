@@ -1,0 +1,20 @@
+id,source,source location,target,target location,pattern,direction,data,data owner,trigger,interval,auth,encryption,retry,idempotency,error handling,monitoring,owner,personal data,notes
+F01,order-hub,,warehouse-wms,,api,one-way,orders,order-hub,real-time,,oauth2,tls,3 tries with backoff,order id,dead-letter,yes,fulfilment-team,no,
+F02,warehouse-wms,,order-hub,,event,one-way,shipment status,warehouse-wms,real-time,,mtls,yes,5 tries,event id,dead-letter + alert,yes,fulfilment-team,no,
+F03,ledger-erp,,crm-suite,,api,two-way,customers,,real-time,,basic,yes,3 tries,,alert,yes,crm-team,yes,synced both ways
+F04,crm-suite,,billing,,api,one-way,invoices,billing,real-time,,api key,https,3 tries,invoice number,alert,yes,billing-team,no,
+F05,billing,,ledger-erp,,file,one-way,invoices,billing,scheduled,,ssh key,no,none,,dead-letter,no,finance-team,no,
+F06,warehouse-wms,,label-printer,,file,one-way,labels,warehouse-wms,scheduled,every 5 min,none,no,none,,none,yes,,no,shop floor
+F07,hr-suite,,payroll,,batch,one-way,employees,hr-suite,scheduled,nightly,oauth2,,2 tries,employee id,dead-letter,yes,people-team,yes,
+F08,payroll,,hr-suite,,batch,one-way,employees,payroll,scheduled,nightly,oauth2,tls,2 tries,employee id,dead-letter,yes,people-team,yes,
+F09,order-hub,,carrier-portal,,api,one-way,bookings,order-hub,real-time,,oauth2,tls,,,alert,yes,fulfilment-team,no,
+F01,order-hub,,warehouse-wms,,rest,one-way,orders,order-hub,real-time,,oauth2,tls,3 tries,order id,dead-letter,yes,fulfilment-team,no,copied from the old sheet
+F11,order-hub,,data-lake,,batch,one-way,orders,order-hub,hourly,,managed identity,tls,2 tries,order id,dead-letter,yes,data-team,no,
+F12,order-hub,,customer-app,,api,one-way,order status,order-hub,real-time,,oauth2,tls,3 tries,order id,alert,yes,web-team,no,
+F13,order-hub,,billing,,edi,one-way,charges,order-hub,scheduled,0 2 * * *,managed identity,tls,2 tries,charge id,dead-letter,yes,billing-team,no,
+F14,order-hub,,crm-suite,,rest-ish,one-way,orders,order-hub,real-time,,oauth2,tls,3 tries,order id,alert,yes,crm-team,no,
+F15,fleet-tracker,,order-hub,,event,one-way,truck positions,fleet-tracker,real-time,,mtls,tls,5 tries,position id,dead-letter,yes,fleet-team,no,
+F16,customer-app,,order-hbu,,api,one-way,orders,customer-app,real-time,,oauth2,tls,3 tries,order id,alert,yes,web-team,yes,
+F17,data-lake,on-premise,crm-suite,,api,one-way,segments,data-lake,scheduled,daily,magic link,tls,2 tries,segment id,alert,yes,data-team,no,
+F18,label-printer,,warehouse-wms,,file,one-way,print results,label-printer,whenever,,none,no,none,,alert,yes,fulfilment-team,no,
+F19,payroll,,,,file,one-way,payslips,payroll,scheduled,monthly,ssh key,sftp,none,,alert,yes,people-team,yes,
